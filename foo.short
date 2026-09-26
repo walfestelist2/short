@@ -1,2 +1,101 @@
-b42 = 'H'
-[42] = 'H'
+w 'E'
+w 'n'
+w 't'
+w 'e'
+w 'r'
+w ' '
+w 't'
+w 'h'
+w 'e'
+w ' '
+w 'f'
+w 'i'
+w 'r'
+w 's'
+w 't'
+w ' '
+w 'n'
+w 'u'
+w 'm'
+w 'b'
+w 'e'
+w 'r'
+w ':'
+w ' '
+r 0
+w b0
+w '\n'
+
+b0 ? '0'
+i < l0
+b0 ? '9'
+i > l0
+
+w 'E'
+w 'n'
+w 't'
+w 'e'
+w 'r'
+w ' '
+w 't'
+w 'h'
+w 'e'
+w ' '
+w 's'
+w 'e'
+w 'c'
+w 'o'
+w 'n'
+w 'd'
+w ' '
+w 'n'
+w 'u'
+w 'm'
+w 'b'
+w 'e'
+w 'r'
+w ':'
+w ' '
+r 1
+w b1
+w '\n'
+
+b1 ? '0'
+i < l0
+b1 ? '9'
+i > l0
+
+j l1
+
+(error)
+l0
+w 'E'
+w 'r'
+w 'r'
+w 'o'
+w 'r'
+w '\n'
+
+j l2
+
+(calculations)
+l1
+
+b0 - '0'
+b1 - '0'
+b0 + b1
+b0 + '0'
+
+w 'A'
+w 'n'
+w 's'
+w 'w'
+w 'e'
+w 'r'
+w ':'
+w ' '
+w b0
+w '\n'
+
+(end)
+l2

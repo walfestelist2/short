@@ -9,15 +9,17 @@
 enum sh_opcode {
     BC_NOP,         /* BC - bytecode */
 
-    BC_BMOVL,        /* moving a byte to the left register */
-    BC_BMOVR,        /*               to the right         */
-    BC_VMOVL,        /*          var                       */
-    BC_VMOVR,        /*          var  to the right         */
+    BC_BMOVL,       /* moving a byte to the left register */
+    BC_BMOVR,       /*               to the right         */
+    BC_VMOVL,       /*          var                       */
+    BC_VMOVR,       /*          var  to the right         */
 
-    BC_BREDEFL,     /* redeference a byte in the left register */
-    BC_BREDEFR,     /*                    in the right         */
-    BC_VREDEFL,     /*               var                       */
-    BC_VREDEFR,     /*               var  in the right         */
+    BC_BDEREFL,     /* dereference a byte in the left register */
+    BC_BDEREFR,     /*                    in the right         */
+    BC_VDEREFL,     /*               var                       */
+    BC_VDEREFR,     /*               var  in the right         */
+
+	BC_SETLBL,
 
     BC_BASSIGN,     /* mov byte [lreg], rreg */
     BC_BPLUS,       /* add byte [rleg], rreg */
@@ -30,6 +32,7 @@ enum sh_opcode {
     BC_BOR,         /*  or byte [rleg], rreg */
     BC_BRSHIFT,     /* shr byte [rleg], rreg */
     BC_BLSHIFT,     /* shl byte [rleg], rreg */
+	BC_BCMP,        /* cmp byte [lreg], rreg */
 
     BC_VASSIGN,     /* mov var [lreg], rreg */
     BC_VPLUS,       /* add var [rleg], rreg */
@@ -42,6 +45,15 @@ enum sh_opcode {
     BC_VOR,         /*  or var [rleg], rreg */
     BC_VRSHIFT,     /* shr var [rleg], rreg */
     BC_VLSHIFT,     /* shl var [rleg], rreg */
+	BC_VCMP,        /* cmp var [lreg], rreg */
+
+	BC_JMP,
+	BC_JE,
+	BC_JNE,
+	BC_JL,
+	BC_JG,
+	BC_JLE,
+	BC_JGE,
 
     BC_WRITE,
     BC_READ,
@@ -61,6 +73,6 @@ struct sh_gen {
     sh_size line;           /* line we're parsing */
 };
 
-struct sh_bc sh_gen (struct sh_lexer *L);
+struct sh_bc sh_gen (struct sh_lexer *L, int do_print);
 
 #endif /* GEN_H */

@@ -30,12 +30,15 @@ enum sh_tok_type {
     TK_STAR,        /* '*' */
     TK_SLASH,       /* '/' */
     TK_PERCENT,     /* '%' */
-
     TK_CARET,       /* '^' */
     TK_PIPE,        /* '|' */
+    TK_AND,         /* '&' */
     TK_LSHIFT,      /* "<<" */
     TK_RSHIFT,      /* ">>" */
+    TK_QUESTION,    /* '?' */
 
+    TK_IF,          /* 'i' */
+    TK_JUMP,        /* 'j' */
     TK_EQUAL,       /* "==" */
     TK_NOT_EQUAL,   /* "!=" */
     TK_LE,          /* "<=" */
@@ -58,6 +61,7 @@ struct sh_lexer {
     sh_size curr;
 };
 
+const char *sh_lex_to_string (enum sh_tok_type type);
 struct sh_lexer sh_lex(const char *src);
 
 #endif /* LEXER_H */

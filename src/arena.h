@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "utils.h"
+#include "common.h"
 
 /* storage for different types of data (aligned by sizeof void* ) */
 struct sh_arena {

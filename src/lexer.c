@@ -4,7 +4,6 @@
 
 #include "arena.h"
 #include "lexer.h"
-#include "utils.h"
 
 static inline char peek (struct sh_lexer *L) {
     return L->src[L->curr];
@@ -37,51 +36,14 @@ static inline void skip_void (struct sh_lexer *L) {
     if (peek(L) == '(') {
         consume(L); /* skipping the first paren */
         while (peek(L) != ')') {
-            sh_assert(peek(L) != '(', "comment start inside a comment");
-            sh_assert(peek(L) != '\0', "unterminated comment");
+            shL_assert(peek(L) != '(', "comment start inside a comment");
+            shL_assert(peek(L) != '\0', "unterminated comment");
             consume(L);
         }
         consume(L); /* skipping the last paren */
     }
 
     while (peek(L) == ' ' || peek(L) == '\t') consume(L);
-}
-
-const char *sh_lex_to_string (enum sh_tok_type type) {
-    switch (type) {
-        case TK_EOF:        return "EOF";
-        case TK_NEWLINE:    return "NEWLINE";
-        case TK_DOT:        return "DOT";
-        case TK_LIT:        return "LIT";
-        case TK_VAR:        return "VAR";
-        case TK_BYTE:       return "BYTE";
-        case TK_LABEL:      return "LABEL";
-        case TK_LBRACE:     return "LBRACE";
-        case TK_RBRACE:     return "RBRACE";
-        case TK_LBRACKET:   return "LBRACKET";
-        case TK_RBRACKET:   return "RBRACKET";
-        case TK_LANGLE:     return "LANGLE";
-        case TK_RANGLE:     return "RANGLE";
-        case TK_ASSIGN:     return "ASSIGN";
-        case TK_COLON:      return "COLON";
-        case TK_PLUS:       return "PLUS";
-        case TK_MINUS:      return "MINUS";
-        case TK_STAR:       return "STAR";
-        case TK_SLASH:      return "SLASH";
-        case TK_PERCENT:    return "PERCENT";
-        case TK_CARET:      return "CARET";
-        case TK_PIPE:       return "PIPE";
-        case TK_LSHIFT:     return "LSHIFT";
-        case TK_RSHIFT:     return "RSHIFT";
-        case TK_EQUAL:      return "EQUAL";
-        case TK_NOT_EQUAL:  return "NOT_EQUAL";
-        case TK_LE:         return "LE";
-        case TK_GE:         return "GE";
-        case TK_WRITE:      return "WRITE";
-        case TK_READ:       return "READ";
-        case TK_EXIT:       return "EXIT";
-        default:            return "UNIMPLEMENTED";
-    }
 }
 
 static void print (struct sh_lexer *L) {
@@ -110,8 +72,8 @@ static sh_var prefix_num (struct sh_lexer *L, const char *full_prefix) {
     errno = 0;
     sh_var num = strtoull(curr(L), &endptr, 10);
 
-    sh_assert(endptr != curr(L), "expected %s number, got '%c'", full_prefix, peek(L));
-    sh_assert(errno != ERANGE, "%s number overflow", full_prefix);
+    shL_assert(endptr != curr(L), "expected %s number, got '%c'", full_prefix, peek(L));
+    shL_assert(errno != ERANGE, "%s number overflow", full_prefix);
 
     sh_size num_len = endptr - curr(L);
     L->curr += num_len;
@@ -125,24 +87,38 @@ static sh_var num (struct sh_lexer *L, int base) {
     errno = 0;
     sh_var num_ = strtoull(curr(L), &endptr, base);
 
-    sh_assert(endptr != curr(L), "unterminated literal");
-    sh_assert(errno != ERANGE, "literal overflow");
+    shL_assert(endptr != curr(L), "unterminated literal in num");
+    shL_assert(errno != ERANGE, "literal overflow");
 
     sh_size num_len = endptr - curr(L);
     L->curr += num_len;
 
-    sh_assert(peek(L) < '0' || peek(L) > '9', "expected a space before two literals");
+    shL_assert(peek(L) < '0' || peek(L) > '9', "expected a space before two literals");
 
     return num_;
 }
 
 static sh_var symbol (struct sh_lexer *L) {
-    sh_assert(consume(L) == '\'', "unreachable because of how 'lit' function should work");
+    shL_assert(consume(L) == '\'', "unreachable because of how 'lit' function should work");
 
     char symb = consume(L);
-    sh_assert(peek(L) == '\'', "unterminated literal");
+    /* escape character handling */
+    if (symb == '\\') {
+        switch (peek(L)) {
+            case 'n' : symb = '\n'  ; break;
+            case 'e' : symb = '\033'; break;
+            case 'b' : symb = '\b'  ; break;
+            case 't' : symb = '\t'  ; break;
+            case 'a' : symb = '\a'  ; break;
+            case '\'': symb = '\''  ; break;
+            case '\\': symb = '\\'  ; break;
+            default: shL_error("unknown escape character: '%c'", peek(L));
+        }
+        consume(L); /* skipping the character */
+    }
+    shL_assert(peek(L) == '\'', "unterminated literal, expected \"'\", got '%c' (%d)", peek(L), peek(L));
     consume(L);
-    return symb;
+    return (sh_var)symb;
 }
 
 static sh_var lit (struct sh_lexer *L) {
@@ -151,7 +127,7 @@ static sh_var lit (struct sh_lexer *L) {
     char first = peek(L);
 
     if (first == '\0') {
-        sh_error("expected literal");
+        shL_error("expected literal");
     }
 
     if (first == '0' && look(L) == 'x') {
@@ -182,7 +158,7 @@ static sh_var lit (struct sh_lexer *L) {
         return symbol(L);
     }
 
-    sh_error("expected literal, got '%c'", peek(L));
+    shL_error("expected literal, got '%c'", peek(L));
 }
 
 static struct sh_tok next (struct sh_lexer *L) {
@@ -205,10 +181,13 @@ static struct sh_tok next (struct sh_lexer *L) {
         case '%' : consume(L); return (struct sh_tok){.type = TK_PERCENT};
         case '^' : consume(L); return (struct sh_tok){.type = TK_CARET};
         case '|' : consume(L); return (struct sh_tok){.type = TK_PIPE};
+        case '?' : consume(L); return (struct sh_tok){.type = TK_QUESTION};
 
         case 'v' : consume(L); return (struct sh_tok){.type = TK_VAR, .value = prefix_num(L, "variable")};
         case 'b' : consume(L); return (struct sh_tok){.type = TK_BYTE, .value = prefix_num(L, "byte")};
         case 'l' : consume(L); return (struct sh_tok){.type = TK_LABEL, .value = prefix_num(L, "label")};
+        case 'i' : consume(L); return (struct sh_tok){.type = TK_IF};
+        case 'j' : consume(L); return (struct sh_tok){.type = TK_JUMP};
         case 'w' : consume(L); return (struct sh_tok){.type = TK_WRITE};
         case 'r' : consume(L); return (struct sh_tok){.type = TK_READ};
         case 'e' : consume(L); return (struct sh_tok){.type = TK_EXIT, .value = lit(L)};
@@ -242,7 +221,7 @@ static struct sh_tok next (struct sh_lexer *L) {
             if ((peek(L) >= '0' && peek(L) <= '9') || peek(L) == '\'') 
                 return (struct sh_tok){.type = TK_LIT, lit(L)};
 
-            sh_error("unexpected symbol: '%c'", peek(L));
+            shL_error("unexpected symbol: '%c'", peek(L));
         }
     }
 }
@@ -259,7 +238,7 @@ struct sh_lexer sh_lex (const char *src) {
         push(&L, next_tok);
     }
 
-    print(&L);
+    // print(&L);
 
     return L;
 }

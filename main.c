@@ -6,17 +6,24 @@
 #include "src/alloc.h"
 #include "src/gen.h"
 #include "src/lexer.h"
+#include "src/run.h"
 #include "src/state.h"
 #include "src/utils.h"
 
 #define SH_AUTHOR   "Wal FE"
 #define SH_VERSION  "0.01"
 
-static char *loadfile (const char *filename) {
-    FILE *file = fopen(filename, "rb");
+enum sh_mode {
+    MODE_BYTECODE,
+    MODE_TOKENIZE,
+    MODE_RUN
+};
+
+static char *loadfile (const char *path) {
+    FILE *file = fopen(path, "rb");
 
     if (!file) {
-        sh_error("%s: %s", filename, strerror(errno));
+        sh_error("%s: %s", path, strerror(errno));
     }
 
     fseek(file, 0, SEEK_END);
@@ -41,6 +48,7 @@ static void print_help (void) {
     errorf("info - prints info about Short Programming Language\n");
     errorf("help - prints this message\n");
     errorf("run - runs a program in Short\n");
+    errorf("tokenize - prints the tokens of the program\n");
 }
 
 static void print_info (void) {
@@ -49,7 +57,8 @@ static void print_info (void) {
     errorf("Version: " SH_VERSION "\n");
 }
 
-static const char *handle_args (int argc, char **argv) {
+static const char *handle_args (int argc, char **argv, enum sh_mode *mode) {
+    /* every branch leads to exiting the function */
     if (argc < 2) {
         print_help();
         sh_error("too little arguments");
@@ -58,10 +67,11 @@ static const char *handle_args (int argc, char **argv) {
         if (strcmp(argv[1], "help") == 0) print_help();
         else if (strcmp(argv[1], "info") == 0) print_info();
         else if (
-                strcmp(argv[1], "run") == 0 || 
-                strcmp(argv[1], "bytecode") == 0
+                strcmp(argv[1], "bytecode") == 0 ||
+                strcmp(argv[1], "run") == 0      || 
+                strcmp(argv[1], "tokenize") == 0
                 ) {
-            sh_error("filename expected");
+            sh_error("path expected");
         }
         else {
             print_help();
@@ -72,10 +82,14 @@ static const char *handle_args (int argc, char **argv) {
     }
 
     if (argc == 3) {
-        if (
-                strcmp(argv[1], "run") == 0 || 
-                strcmp(argv[1], "bytecode") == 0
-            ) {
+        if (strcmp(argv[1], "bytecode") == 0) {
+            *mode = MODE_BYTECODE;
+            return argv[2];
+        } else if (strcmp(argv[1], "tokenize") == 0) {
+            *mode = MODE_TOKENIZE;
+            return argv[2];
+        } else if (strcmp(argv[1], "run") == 0) {
+            *mode = MODE_RUN;
             return argv[2];
         } else {
             print_help();
@@ -83,16 +97,41 @@ static const char *handle_args (int argc, char **argv) {
         }
     }
 
-    sh_error("too much arguments");
+    shL_error("too much arguments");
     print_help();
 }
 
+void sh_print_lexer (struct sh_lexer *L) {
+    struct sh_tok *toks = (struct sh_tok*)L->toks.data;
+
+	size_t line_num = 1;
+
+    for (sh_size i = 0 ;; i++) {
+        printf("%s: %zu\n", sh_lex_to_string(toks[i].type), toks[i].value);
+		if (toks[i].type == TK_NEWLINE) printf("Line %zu\n", ++line_num);
+		if (toks[i].type == TK_EOF) break;
+    }
+}
+
 int main (int argc, char **argv) {
-    const char *filename = handle_args(argc, argv);
-    if (!filename) return 0;
-    char *src = loadfile(filename);
+    enum sh_mode mode = MODE_RUN;
+    const char *path = handle_args(argc, argv, &mode);
+    if (!path) return 0;
+    char *src = loadfile(path); /* exiting in case of a error */
     struct sh_lexer L = sh_lex(src);
-    struct sh_bc bc = sh_gen(&L);
+    if (mode == MODE_TOKENIZE) {
+        sh_print_lexer(&L);
+        return 0;
+    }
+
+    struct sh_bc bc = sh_gen(&L, mode == MODE_BYTECODE);
+    if (mode == MODE_BYTECODE) return 0; /* already printed bytecode in sh_gen */
+    
+	if (mode == MODE_RUN) {
+        sh_run(&bc);
+    } else {
+        sh_error("unknown mode");
+    }
 
     sh_free(src);
     return 0;

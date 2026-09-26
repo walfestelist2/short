@@ -6,6 +6,8 @@
 #include <stdio.h>
 
 #include "common.h"
+#include "lexer.h"
+#include "arena.h"
 
 struct sh_gen;
 
@@ -16,9 +18,13 @@ struct sh_gen;
 #define vfatalf(msg, args) do { verrorf(msg, args); sh_exit(1); } while (0)
 
 void sh_exit(int code);
+
 void sh_assert(int cond, const char *msg, ...);
+void shL_assert(int cond, const char *msg, ...);
+void shG_assert(struct sh_gen *G, int cond, const char *msg, ...);
 
 void sh_error(const char *msg, ...);
+void shL_error(const char *msg, ...);
 void shG_error(struct sh_gen *G, const char *msg, ...);
 
 #endif /* UTILS_H */
